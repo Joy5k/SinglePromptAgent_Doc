@@ -4,6 +4,39 @@ Use these routes when embedding a single-prompt chat agent into a public website
 
 Important: browser code must never use tenant API keys. Browser code uses a public key only for session initialization, then uses a short-lived widget session token for messages.
 
+For credential setup and copy-paste test values, see `docs/api_docs/chat/credentials_and_test_values.md`.
+
+## Base URL
+
+Render deployment:
+
+```text
+https://nexiflowai-single-prompt-agent-tool.onrender.com
+```
+
+Public widget routes are not under `/api/v1`. For example:
+
+```text
+POST https://nexiflowai-single-prompt-agent-tool.onrender.com/widget/init
+POST https://nexiflowai-single-prompt-agent-tool.onrender.com/widget/sessions/{session_id}/message
+```
+
+Management setup routes still use `/api/v1`:
+
+```text
+POST https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1/public-keys
+```
+
+## Frontend Integration Checklist
+
+1. Do not call `/api/v1/agents/{agent_id}/test-session` from public website code.
+2. Do not expose `X-API-Key` or `Authorization: Bearer <member_jwt>` in browser JavaScript.
+3. Store the public key `nxf_pk_...` in frontend configuration.
+4. Call `/widget/init` when the chat opens.
+5. Store the returned `session_id` and `session_token` for this chat session.
+6. Send `Authorization: Bearer <session_token>` to widget message/history/end routes.
+7. If `/widget/init` fails with an origin error, update the public key `allowed_domains`.
+
 ## Route Groups
 
 Management route for setup:
@@ -204,10 +237,31 @@ Accept: application/json
 
 ### Example Request
 
+Full browser-style request:
+
+```bash
+curl -sS -X POST \
+  "https://nexiflowai-single-prompt-agent-tool.onrender.com/widget/init" \
+  -H "Origin: https://www.example.com" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "public_key": "nxf_pk_6fc2f7ef0bcb03e59307f278f2f51fb57b44fedc4a1b9ed2",
+    "agent_id": "ea517389-f9d8-448a-8080-34a6225509fa",
+    "visitor_id": "visitor-123",
+    "metadata": {
+      "page": "/pricing",
+      "locale": "en-US"
+    }
+  }'
+```
+
+JSON body only:
+
 ```json
 {
   "public_key": "nxf_pk_6fc2f7ef0bcb03e59307f278f2f51fb57b44fedc4a1b9ed2",
-  "agent_id": "2c6a4b53-3c1f-4ef7-8f98-7e3192e29c0b",
+  "agent_id": "ea517389-f9d8-448a-8080-34a6225509fa",
   "visitor_id": "visitor-123",
   "metadata": {
     "page": "/pricing",
@@ -343,6 +397,19 @@ Accept: text/event-stream
 | `message` | string | yes | Visitor message. Min 1 char, max 10000 chars. |
 
 ### Example Request
+
+Full request:
+
+```bash
+curl -N -X POST \
+  "https://nexiflowai-single-prompt-agent-tool.onrender.com/widget/sessions/65c86045-32b4-4d9a-a4df-0fd79683bb74/message" \
+  -H "Authorization: Bearer <session_token_from_widget_init>" \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{"message":"Can you explain the Growth plan?"}'
+```
+
+JSON body only:
 
 ```json
 {
@@ -596,9 +663,9 @@ Ending a widget session can trigger:
 ## Minimal Browser Flow
 
 ```ts
-const WIDGET_BASE = "http://localhost:8001/widget";
+const WIDGET_BASE = "https://nexiflowai-single-prompt-agent-tool.onrender.com/widget";
 const PUBLIC_KEY = "nxf_pk_6fc2f7ef0bcb03e59307f278f2f51fb57b44fedc4a1b9ed2";
-const AGENT_ID = "2c6a4b53-3c1f-4ef7-8f98-7e3192e29c0b";
+const AGENT_ID = "ea517389-f9d8-448a-8080-34a6225509fa";
 
 async function initChat() {
   const response = await fetch(`${WIDGET_BASE}/init`, {

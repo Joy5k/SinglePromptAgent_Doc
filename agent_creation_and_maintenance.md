@@ -4,7 +4,15 @@ This document explains how to create, edit, version, publish, test, and maintain
 
 It is written for implementation work. A junior developer should be able to read this file and know which route to call, which headers to send, what body shape is expected, what a successful response looks like, and what errors to handle.
 
+For credential setup and copy-paste test values, see `docs/api_docs/chat/credentials_and_test_values.md`.
+
 ## Base URL
+
+Render deployment:
+
+```text
+https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1
+```
 
 Local development:
 
@@ -29,8 +37,44 @@ POST /agents
 means:
 
 ```text
-POST http://localhost:8001/api/v1/agents
+POST https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1/agents
 ```
+
+## Frontend Developer Quick Start
+
+Use this section when wiring an admin/sandbox UI.
+
+### Which API Should I Use?
+
+| Use case | Use these routes | Credential to send |
+|---|---|---|
+| Admin creates/edits/tests agents | `/api/v1/agents`, `/api/v1/tools`, `/api/v1/sessions` | `Authorization: Bearer <member_jwt>` or `X-API-Key: <tenant_api_key>` |
+| Internal sandbox "Test" button | `POST /api/v1/agents/{agent_id}/test-session`, then `POST /api/v1/sessions/{session_id}/stream` | API key with `sessions:write`, or member JWT |
+| Public website visitor chat | `/widget/init`, `/widget/sessions/{session_id}/message` | Public key `nxf_pk_...`, then widget `session_token` |
+
+Do not put tenant API keys or member JWTs in public browser code. Public websites should use `/widget/*`.
+
+### Known Real Example IDs From Render QA
+
+These IDs are examples from a real Render QA run. They show the expected UUID shape and tenant relationship; create your own agent/session for new tests.
+
+```text
+Base URL: https://nexiflowai-single-prompt-agent-tool.onrender.com
+Tenant ID: 00000000-0000-0000-0000-000000000001
+Agent ID: ea517389-f9d8-448a-8080-34a6225509fa
+Session ID: fc8c31b6-96cd-4ee8-a65f-d9311ed4f4f1
+Engine: single_prompt
+Channel: chat
+```
+
+### Common Integration Mistakes
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `missing_authenticated_tenant` | Missing/invalid `Authorization` or `X-API-Key` on `/api/v1/*` route | Send a valid member JWT or tenant API key. `X-Tenant-ID` alone is not enough on Render. |
+| `RESOURCE_NOT_FOUND` for an agent | Wrong tenant, wrong agent ID, or flow-engine agent ID | Use an agent owned by the same tenant and created with `engine = "single_prompt"`. |
+| `422` request validation error | Invalid JSON or wrong body shape | Remove trailing commas and send the exact JSON shown in examples. |
+| Widget route says token is invalid | Using member JWT/API key instead of widget session token | Call `/widget/init`, then use returned `session_token`. |
 
 ## Authentication
 
@@ -55,6 +99,66 @@ Accept: application/json
 ```
 
 When using an API key, `X-Tenant-ID` must match the API key tenant if it is sent. If the API key already fixes the tenant, the header can be omitted.
+
+### Auth Examples
+
+Member JWT example:
+
+```http
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+X-Tenant-ID: 00000000-0000-0000-0000-000000000001
+Content-Type: application/json
+Accept: application/json
+```
+
+API key example:
+
+```http
+X-API-Key: nxf_111111111111111111111111111111111111111111111111
+Content-Type: application/json
+Accept: application/json
+```
+
+API keys are created by `POST /api-keys`. The full key is returned only once and cannot be recovered later because only the hash is stored.
+
+Create a sandbox/session key:
+
+```http
+POST https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1/api-keys
+Authorization: Bearer <admin_member_jwt>
+X-Tenant-ID: 00000000-0000-0000-0000-000000000001
+Content-Type: application/json
+Accept: application/json
+```
+
+```json
+{
+  "name": "Frontend sandbox session key",
+  "permissions": {
+    "scopes": ["sessions:write", "sessions:read"]
+  },
+  "rate_limit_requests": 300,
+  "rate_limit_window": 60
+}
+```
+
+Example response:
+
+```json
+{
+  "id": "63a7fd44-5850-4be2-8c88-3068bd6b5f54",
+  "key": "nxf_111111111111111111111111111111111111111111111111",
+  "key_prefix": "nxf_1111",
+  "name": "Frontend sandbox session key",
+  "permissions": {
+    "scopes": ["sessions:write", "sessions:read"]
+  },
+  "rate_limit_requests": 300,
+  "rate_limit_window": 60,
+  "created_at": "2026-05-07T06:00:00Z",
+  "expires_at": null
+}
+```
 
 ## Required API Key Scopes
 
@@ -857,10 +961,41 @@ Status: `400 Bad Request`
 Creates a session against the current draft version. This is for sandbox/test UI only. Production sessions use `POST /sessions`.
 
 ```http
-POST /agents/{agent_id}/test-session
+POST https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1/agents/{agent_id}/test-session
 ```
 
 Required scope: `sessions:write`
+
+### Headers
+
+Use a tenant API key:
+
+```http
+X-API-Key: nxf_111111111111111111111111111111111111111111111111
+Content-Type: application/json
+Accept: application/json
+```
+
+Or use a member JWT:
+
+```http
+Authorization: Bearer <member_jwt>
+X-Tenant-ID: 00000000-0000-0000-0000-000000000001
+Content-Type: application/json
+Accept: application/json
+```
+
+If you get this error, authentication is missing or invalid:
+
+```json
+{
+  "error": "AUTHENTICATION_ERROR",
+  "message": "A valid API key or member Bearer token is required",
+  "details": {
+    "reason": "missing_authenticated_tenant"
+  }
+}
+```
 
 ### Request Body
 
@@ -870,6 +1005,23 @@ Required scope: `sessions:write`
 
 ### Example Request
 
+Full request:
+
+```bash
+curl -sS -X POST \
+  "https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1/agents/ea517389-f9d8-448a-8080-34a6225509fa/test-session" \
+  -H "X-API-Key: nxf_111111111111111111111111111111111111111111111111" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "initial_variables": {
+      "customer_name": "Ava",
+      "plan_name": "Growth"
+    }
+  }'
+```
+
+JSON body only:
+
 ```json
 {
   "initial_variables": {
@@ -878,6 +1030,19 @@ Required scope: `sessions:write`
   }
 }
 ```
+
+Invalid JSON example:
+
+```json
+{
+  "initial_variables": {
+    "customer_name": "Ava",
+    "plan_name": "Growth"
+  }
+},,
+```
+
+The trailing `,,` makes the request invalid. Remove it.
 
 ### Success Response
 
@@ -1196,9 +1361,9 @@ Common error when the agent is not archived:
 Set variables:
 
 ```bash
-export API_BASE="http://localhost:8001/api/v1"
-export API_KEY="nxf_sk_example"
-export TENANT_ID="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+export API_BASE="https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1"
+export API_KEY="nxf_111111111111111111111111111111111111111111111111"
+export TENANT_ID="00000000-0000-0000-0000-000000000001"
 ```
 
 Create agent:

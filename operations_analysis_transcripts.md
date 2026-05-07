@@ -6,7 +6,15 @@ For agent creation and publishing, see `docs/api_docs/chat/agent_creation_and_ma
 
 For public browser widgets, see `docs/api_docs/chat/website_usage.md`.
 
+For credential setup and copy-paste test values, see `docs/api_docs/chat/credentials_and_test_values.md`.
+
 ## Base URL
+
+Render deployment:
+
+```text
+https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1
+```
 
 Local development:
 
@@ -22,16 +30,29 @@ Server-to-server session routes require tenant authentication.
 
 ```http
 X-API-Key: <tenant_api_key>
-X-Tenant-ID: aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
 Content-Type: application/json
 Accept: application/json
 ```
+
+When using `X-API-Key`, `X-Tenant-ID` is optional if the key already belongs to one tenant. If sent, it must match the API key tenant.
 
 or:
 
 ```http
 Authorization: Bearer <member_jwt>
-X-Tenant-ID: aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+X-Tenant-ID: 00000000-0000-0000-0000-000000000001
+```
+
+Render does not allow `X-Tenant-ID` alone for management/session routes. Missing credentials return:
+
+```json
+{
+  "error": "AUTHENTICATION_ERROR",
+  "message": "A valid API key or member Bearer token is required",
+  "details": {
+    "reason": "missing_authenticated_tenant"
+  }
+}
 ```
 
 ## Required API Key Scopes
@@ -199,7 +220,6 @@ Use this for interactive chat. This is the recommended runtime endpoint.
 
 ```http
 X-API-Key: <tenant_api_key>
-X-Tenant-ID: aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
 Content-Type: application/json
 Accept: text/event-stream
 ```
@@ -217,6 +237,19 @@ Accept: text/event-stream
 | `user_input` | string or null | recommended | Message to send. Runtime rejects empty prompt turns. |
 
 ### Example Request
+
+Full request:
+
+```bash
+curl -N -X POST \
+  "https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1/sessions/65c86045-32b4-4d9a-a4df-0fd79683bb74/stream" \
+  -H "X-API-Key: nxf_111111111111111111111111111111111111111111111111" \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{"user_input":"Can you explain the Growth plan?"}'
+```
+
+JSON body only:
 
 ```json
 {
@@ -964,10 +997,10 @@ Example response:
 Set variables:
 
 ```bash
-export API_BASE="http://localhost:8001/api/v1"
-export API_KEY="nxf_sk_example"
-export TENANT_ID="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
-export AGENT_ID="2c6a4b53-3c1f-4ef7-8f98-7e3192e29c0b"
+export API_BASE="https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1"
+export API_KEY="nxf_111111111111111111111111111111111111111111111111"
+export TENANT_ID="00000000-0000-0000-0000-000000000001"
+export AGENT_ID="ea517389-f9d8-448a-8080-34a6225509fa"
 ```
 
 Create session:
