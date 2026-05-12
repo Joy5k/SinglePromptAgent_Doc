@@ -113,46 +113,11 @@ Use tenant API keys for trusted server-to-server calls or an internal admin/sand
 
 The full API key is returned only once when it is created. Store it securely. The database stores only its hash, so you cannot retrieve the full key later.
 
-### Create A Sessions-Only API Key
+### Create An API Key
 
-Requires an existing admin/member JWT or full-access/admin API key.
+**Note:** API keys are now created and managed by the **Identity Management** service. This service no longer handles the creation of API keys.
 
-```bash
-curl -sS -X POST \
-  "https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1/api-keys" \
-  -H "Authorization: Bearer <admin_member_jwt>" \
-  -H "X-Tenant-ID: 00000000-0000-0000-0000-000000000001" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d '{
-    "name": "Frontend sandbox session key",
-    "permissions": {
-      "scopes": ["sessions:write", "sessions:read"]
-    },
-    "rate_limit_requests": 300,
-    "rate_limit_window": 60
-  }'
-```
-
-Example response:
-
-```json
-{
-  "id": "63a7fd44-5850-4be2-8c88-3068bd6b5f54",
-  "key": "nxf_111111111111111111111111111111111111111111111111",
-  "key_prefix": "nxf_1111",
-  "name": "Frontend sandbox session key",
-  "permissions": {
-    "scopes": ["sessions:write", "sessions:read"]
-  },
-  "rate_limit_requests": 300,
-  "rate_limit_window": 60,
-  "created_at": "2026-05-07T06:00:00Z",
-  "expires_at": null
-}
-```
-
-Use the returned `key` like:
+You will need to use the Identity Management API or dashboard to generate a tenant API key. Use the generated `key` like:
 
 ```http
 X-API-Key: nxf_111111111111111111111111111111111111111111111111
@@ -171,43 +136,9 @@ nxf_pk_<48 hex chars>
 
 ### Create A Public Widget Key
 
-Requires admin scope. Call this from backend/admin code, never from public browser code.
+**Note:** Public widget keys are now created and managed by the **Identity Management** service. This service no longer handles the creation of public keys.
 
-```bash
-curl -sS -X POST \
-  "https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1/public-keys" \
-  -H "Authorization: Bearer <admin_member_jwt>" \
-  -H "X-Tenant-ID: 00000000-0000-0000-0000-000000000001" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d '{
-    "name": "Website widget key",
-    "agent_ids": ["ea517389-f9d8-448a-8080-34a6225509fa"],
-    "allowed_domains": ["example.com", "www.example.com", "localhost:*"],
-    "rate_limit_requests": 120,
-    "rate_limit_window": 60,
-    "expires_at": null
-  }'
-```
-
-Example response:
-
-```json
-{
-  "id": "8e39464a-1d1b-4d9f-bf5b-91a7214d7ed2",
-  "key": "nxf_pk_6fc2f7ef0bcb03e59307f278f2f51fb57b44fedc4a1b9ed2",
-  "key_prefix": "nxf_pk_6fc2",
-  "name": "Website widget key",
-  "agent_ids": ["ea517389-f9d8-448a-8080-34a6225509fa"],
-  "allowed_domains": ["example.com", "www.example.com", "localhost:*"],
-  "rate_limit_requests": 120,
-  "rate_limit_window": 60,
-  "created_at": "2026-05-07T06:05:00Z",
-  "expires_at": null
-}
-```
-
-The full public key is also returned only once.
+You will need to use the Identity Management API or dashboard to generate a public key. The generated public key format will be similar to `nxf_pk_6fc2f7ef0bcb03e59307f278f2f51fb57b44fedc4a1b9ed2`.
 
 ## Create A Sandbox Test Session
 

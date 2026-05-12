@@ -119,46 +119,7 @@ Content-Type: application/json
 Accept: application/json
 ```
 
-API keys are created by `POST /api-keys`. The full key is returned only once and cannot be recovered later because only the hash is stored.
-
-Create a sandbox/session key:
-
-```http
-POST https://nexiflowai-single-prompt-agent-tool.onrender.com/api/v1/api-keys
-Authorization: Bearer <admin_member_jwt>
-X-Tenant-ID: 00000000-0000-0000-0000-000000000001
-Content-Type: application/json
-Accept: application/json
-```
-
-```json
-{
-  "name": "Frontend sandbox session key",
-  "permissions": {
-    "scopes": ["sessions:write", "sessions:read"]
-  },
-  "rate_limit_requests": 300,
-  "rate_limit_window": 60
-}
-```
-
-Example response:
-
-```json
-{
-  "id": "63a7fd44-5850-4be2-8c88-3068bd6b5f54",
-  "key": "nxf_111111111111111111111111111111111111111111111111",
-  "key_prefix": "nxf_1111",
-  "name": "Frontend sandbox session key",
-  "permissions": {
-    "scopes": ["sessions:write", "sessions:read"]
-  },
-  "rate_limit_requests": 300,
-  "rate_limit_window": 60,
-  "created_at": "2026-05-07T06:00:00Z",
-  "expires_at": null
-}
-```
+API keys are managed by the **Identity Management** service. Please use the Identity Management API or dashboard to generate a tenant API key. The database stores only its hash, so you cannot retrieve the full key later.
 
 ## Required API Key Scopes
 
